@@ -3,8 +3,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
-      "description": "Compiles the application for production deployment"
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "test": {
       "outputs": ["coverage/**"],

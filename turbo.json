@@ -8,6 +8,9 @@
     "test": {
       "outputs": ["coverage/**"],
       "dependsOn": ["build"]
+    },
+    "lint": {
+        "dependsOn": ["^lint"]
     }
   }
 }

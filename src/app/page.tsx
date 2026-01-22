@@ -1,6 +1,3 @@
-
 export default function Page() {
-return <div>
-  dev tractor root
-</div>;
+    return <div>dev tractor root</div>;
 }

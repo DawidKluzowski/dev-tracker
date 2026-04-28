@@ -13,6 +13,10 @@ import { Label } from "@/components/ui/label";
 import * as z from "zod";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/lib/supabase/supaclient";
+import { useEffect } from "react";
+import { signIn, useSession } from "next-auth/react";
+import Link from "next/dist/client/link";
 
 const formSchema = z.object({
     user: z.string().min(1, "User is required"),
@@ -26,22 +30,36 @@ type LoginInputs = {
 
 function LoginPage() {
     const {
-        watch,
         register,
         handleSubmit,
         formState: { errors },
     } = useForm<LoginInputs>({ resolver: zodResolver(formSchema) });
+    const session = useSession();
 
-    const onSubmit: SubmitHandler<LoginInputs> = (data) => console.log(data);
+    const onSubmit: SubmitHandler<LoginInputs> = async (data) => {
+        await signIn(
+            "credentials",
+            {
+                user: data.user,
+                password: data.password,
+            },
+            { callbackUrl: "/" },
+        );
+    };
 
     return (
         <div>
             <Dialog open={true} modal={true}>
                 <form onSubmit={handleSubmit(onSubmit)}>
-                    <DialogContent showCloseButton={false}>
+                    <DialogContent
+                        showCloseButton={false}
+                        className="p-12 pt-10"
+                    >
                         <DialogHeader className="text-center">
-                            <DialogTitle>Login</DialogTitle>
-                            <DialogDescription>
+                            <DialogTitle className="text-2xl font-bold">
+                                Login
+                            </DialogTitle>
+                            <DialogDescription className="text-center">
                                 Please enter your credentials to log in.
                             </DialogDescription>
                         </DialogHeader>
@@ -80,6 +98,15 @@ function LoginPage() {
                                     Login
                                 </Button>
                             </div>
+                        </div>
+                        <div>
+                            Don't have an account?{" "}
+                            <Link
+                                href="/register"
+                                className="text-blue-500 hover:underline"
+                            >
+                                Register here
+                            </Link>
                         </div>
                     </DialogContent>
                 </form>

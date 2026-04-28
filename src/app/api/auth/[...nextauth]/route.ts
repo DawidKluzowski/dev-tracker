@@ -1,10 +1,10 @@
 import { supabase } from "@/lib/supabase/supaclient";
-import NextAuth, { DefaultSession } from "next-auth";
+import NextAuth, { DefaultSession, User as NextAuthUser, Session } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcrypt";
-import { redirect } from "next/dist/server/api-utils";
 
-interface User {
+interface SupabaseUser {
     id: string;
     user: string;
     email: string;
@@ -16,6 +16,16 @@ declare module "next-auth" {
         user: {
             userName?: string | null;
         } & DefaultSession["user"];
+    }
+
+    interface User {
+        id: string;
+        userId: string;
+        userName: string;
+    }
+
+    interface JWT {
+        userName?: string | null;
     }
 }
 
@@ -49,7 +59,7 @@ const authOptions = {
             //     }
             // },
             async authorize(credentials, req) {
-                if (!credentials?.password && !credentials?.user) {
+                if (!credentials?.password || !credentials?.user) {
                     return null;
                 }
 
@@ -57,10 +67,11 @@ const authOptions = {
                     const { data, error } = await supabase
                         .from("user")
                         .select("*")
-                        .eq("user", credentials?.user)
-                        .single();
+                        .eq("user", credentials.user)
+                        .single<SupabaseUser>();
 
-                    if (!data) {
+                    if (error || !data) {
+                        console.log("ERROR", error);
                         return null;
                     }
 
@@ -73,17 +84,14 @@ const authOptions = {
                         return null;
                     }
 
-                    if (error || !data) {
-                        console.log("ERROR", error);
-                        return null;
-                    }
-
                     return {
+                        id: data.id,
                         userId: data.id,
                         userName: data.user,
                     };
                 } catch (error) {
                     console.log("ERROR", error);
+                    return null;
                 }
             },
         }),
@@ -95,20 +103,19 @@ const authOptions = {
         signIn: "/login",
     },
     callbacks: {
-        async jwt({ token, user }) {
-            if (user) {
-                token.userName = (user as any).userName ?? user.name ?? null;
+        async jwt({ token, user }: { token: JWT; user?: NextAuthUser }) {
+            if (user && "userName" in user) {
+                token.userName = user.userName ?? null;
             }
             return token;
         },
-        async session({ session, token }) {
-            if (session.user) {
-                (session.user as any).userName =
-                    (token as any).userName ?? null;
+        async session({ session, token }: { session: Session; token: JWT }) {
+            if (session.user && token.userName) {
+                session.user.userName = token.userName as string;
             }
             return session;
         },
-        async redirect({ url, baseUrl }) {
+        async redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
             return baseUrl;
         },
     },
